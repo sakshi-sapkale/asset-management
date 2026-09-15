@@ -1,0 +1,29 @@
+import 'dotenv/config';
+
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+import { runDatabaseScripts } from './index';
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
+const pool = new Pool({ connectionString: databaseUrl });
+const db = drizzle(pool);
+
+async function main() {
+  try {
+    await runDatabaseScripts(db);
+    console.log('Database scripts completed successfully.');
+  } finally {
+    await pool.end();
+  }
+}
+
+main().catch((error) => {
+  console.error('Database scripts failed:', error);
+  process.exitCode = 1;
+});
