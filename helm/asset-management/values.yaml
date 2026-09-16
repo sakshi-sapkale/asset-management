@@ -1,0 +1,36 @@
+backend:
+  replicaCount: 1
+  image:
+    repository: asset-service
+    tag: local
+    pullPolicy: Never
+  service:
+    port: 3000
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: asset-frontend
+    tag: local
+    pullPolicy: Never
+  service:
+    port: 80
+
+postgres:
+  image:
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+  database: asset_management
+  username: postgres
+  password: postgres
+  service:
+    port: 5432
+  persistence:
+    size: 1Gi
+    existingClaim: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: asset.local
