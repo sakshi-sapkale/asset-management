@@ -3,12 +3,29 @@ export type AssetStatus = 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE'
 export type Asset = {
   id: number | string
   name: string
-  description: string
+  description?: string
+  assetTag: string
+  status: AssetStatus
+}
+
+export type AssetInput = {
+  name: string
+  description?: string
   assetTag: string
   status: AssetStatus
 }
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api').replace(/\/$/, '')
+
+export class ApiError extends Error {
+  fieldErrors?: Record<string, string>
+
+  constructor(message: string, fieldErrors?: Record<string, string>) {
+    super(message)
+    this.name = 'ApiError'
+    this.fieldErrors = fieldErrors
+  }
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let response: Response
@@ -22,7 +39,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try { responseBody = responseText ? JSON.parse(responseText) : undefined } catch { responseBody = responseText }
   if (!response.ok) {
     const message = typeof responseBody === 'object' && responseBody !== null && 'message' in responseBody ? String(responseBody.message) : typeof responseBody === 'string' && responseBody ? responseBody : `Request failed with ${response.status}`
-    throw new Error(message)
+    const fieldErrors = typeof responseBody === 'object' && responseBody !== null && 'fieldErrors' in responseBody && typeof responseBody.fieldErrors === 'object' && responseBody.fieldErrors !== null ? responseBody.fieldErrors as Record<string, string> : undefined
+    throw new ApiError(message, fieldErrors)
   }
   return responseBody as T
 }
@@ -34,6 +52,6 @@ function unwrap<T>(response: T | { data: T } | { asset: T }): T {
 }
 
 export async function getAssets(): Promise<Asset[]> { return unwrap(await request<Asset[] | { data: Asset[] }>('/assets')) }
-export async function createAsset(asset: Omit<Asset, 'id'>): Promise<Asset> { return unwrap(await request<Asset | { data: Asset } | { asset: Asset }>('/assets', { method: 'POST', body: JSON.stringify(asset) })) }
-export async function updateAsset(id: number | string, asset: Partial<Omit<Asset, 'id'>>): Promise<Asset> { return unwrap(await request<Asset | { data: Asset } | { asset: Asset }>(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(asset) })) }
+export async function createAsset(asset: AssetInput): Promise<Asset> { return unwrap(await request<Asset | { data: Asset } | { asset: Asset }>('/assets', { method: 'POST', body: JSON.stringify(asset) })) }
+export async function updateAsset(id: number | string, asset: Partial<AssetInput>): Promise<Asset> { return unwrap(await request<Asset | { data: Asset } | { asset: Asset }>(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(asset) })) }
 export async function deleteAsset(id: number | string): Promise<void> { await request<void>(`/assets/${id}`, { method: 'DELETE' }) }
