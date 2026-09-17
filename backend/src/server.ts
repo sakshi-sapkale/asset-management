@@ -2,20 +2,29 @@ import 'dotenv/config';
 
 import app from './app';
 import { closeDatabase, initializeDatabase } from './db';
+import { logger } from './logger';
 
 const PORT = Number(process.env.PORT) || 3000;
 
 async function start() {
+  logger.info({ port: PORT }, 'Starting asset service');
   await initializeDatabase();
 
   const server = app.listen(PORT, () => {
-    console.log(`Asset Service running on port ${PORT}`);
+    logger.info({ port: PORT }, 'Asset service is listening');
   });
 
   const shutdown = async () => {
-    server.close(async () => {
+    logger.info('Shutdown signal received');
+    server.close(async (error) => {
+      if (error) {
+        logger.error({ err: error }, 'HTTP server failed to close cleanly');
+        process.exitCode = 1;
+      }
+
       await closeDatabase();
-      process.exit(0);
+      logger.info('Asset service shutdown complete');
+      process.exit();
     });
   };
 
@@ -24,6 +33,6 @@ async function start() {
 }
 
 start().catch((error) => {
-  console.error('Unable to start Asset Service:', error);
+  logger.error({ err: error }, 'Unable to start asset service');
   process.exit(1);
 });
