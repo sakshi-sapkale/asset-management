@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Add, DeleteOutlined, EditOutlined, Inventory2Outlined, Search } from '@mui/icons-material'
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControl, IconButton, InputAdornment, InputLabel, MenuItem, Paper, Select, Snackbar, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Alert, Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControl, IconButton, InputAdornment, InputLabel, Menu, MenuItem, Paper, Select, Snackbar, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import type { Asset, AssetStatus } from './api'
 import { createAsset, deleteAsset, getAssets, updateAsset } from './api'
 import { assetFormSchema, getAssetFormErrors, type AssetForm } from './assets/asset.schema'
+import { useAuth } from './auth'
 import './App.css'
 
 const emptyForm: AssetForm = { name: '', description: '', assetTag: '', status: 'AVAILABLE' }
 const statusColor: Record<AssetStatus, 'success' | 'warning' | 'info'> = { AVAILABLE: 'info', ASSIGNED: 'success', MAINTENANCE: 'warning' }
 
 function App() {
+  const { logout, username } = useAuth()
+  const [profileAnchor, setProfileAnchor] = useState<null | HTMLElement>(null)
   const [assets, setAssets] = useState<Asset[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -28,6 +31,8 @@ function App() {
     return searchable.includes(search.toLowerCase()) && (statusFilter === 'ALL' || asset.status === statusFilter)
   }), [assets, search, statusFilter])
   const showNotice = (message: string, error = false) => { setNotice(message); setNoticeError(error) }
+  const closeProfile = () => setProfileAnchor(null)
+  const usernameInitial = username?.trim().charAt(0).toUpperCase() || '?'
   const openCreate = () => { setEditing(null); setForm(emptyForm); setFormErrors({}); setDialogOpen(true) }
   const openEdit = (asset: Asset) => { setEditing(asset); setForm({ name: asset.name, description: asset.description ?? '', assetTag: asset.assetTag, status: asset.status }); setFormErrors({}); setDialogOpen(true) }
   const setField = (field: keyof AssetForm, value: string) => {
@@ -73,7 +78,7 @@ function App() {
   }
 
   return <Box className="inventory-page">
-    <Box className="page-heading"><Box><Typography className="eyebrow">ASSET INVENTORY</Typography><Typography variant="h1">Everything in its place.</Typography><Typography className="subtitle">Track, manage, and make the most of every asset your team owns.</Typography></Box><Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add asset</Button></Box>
+    <Box className="page-heading"><Box><Typography className="eyebrow">ASSET INVENTORY</Typography><Typography variant="h1">Everything in its place.</Typography><Typography className="subtitle">Track, manage, and make the most of every asset your team owns.</Typography></Box><Stack alignItems="center" spacing={2}><IconButton aria-label="Open account menu" disableRipple sx={{ '&:hover': { backgroundColor: 'transparent' } }} onClick={(event) => setProfileAnchor(event.currentTarget)}><Avatar sx={{ width: 40, height: 40 }}>{usernameInitial}</Avatar></IconButton><Button variant="contained" startIcon={<Add />} onClick={openCreate}>Add asset</Button><Menu anchorEl={profileAnchor} open={Boolean(profileAnchor)} onClose={closeProfile} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}><MenuItem disabled>{username}</MenuItem><MenuItem onClick={() => { closeProfile(); void logout() }}>Sign out</MenuItem></Menu></Stack></Box>
     <Box className="stats-grid"><StatCard label="Total assets" value={assets.length.toString()} detail="From the backend" accent="blue" icon={<Inventory2Outlined />} /><StatCard label="In use" value={assets.filter((asset) => asset.status === 'ASSIGNED').length.toString()} detail="Currently assigned" accent="green" icon={<Inventory2Outlined />} /></Box>
     <Paper className="asset-panel" elevation={0}>
       <Box className="panel-header"><Box><Typography className="panel-title">All assets</Typography><Typography className="panel-subtitle">Assets loaded from the backend service</Typography></Box><Typography className="asset-count">{filteredAssets.length} of {assets.length}</Typography></Box><Divider />

@@ -13,9 +13,11 @@ import {
   updateAssetSchema,
 } from './asset.schema';
 import { validateBody, validateParam } from '../middleware/validation.middleware';
+import { requireAuth } from '../middleware/auth.middleware';
 
 const router = Router();
 
+router.use(requireAuth);
 router.get('/', getAssetsController);
 router.get('/:id', validateParam('id', assetIdSchema), getAssetController);
 router.post('/', validateBody(createAssetSchema), createAssetController);
