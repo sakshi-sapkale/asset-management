@@ -7,10 +7,19 @@ const keycloak = new Keycloak({
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'asset-ui',
 })
 
+const apiClientId = import.meta.env.VITE_KEYCLOAK_API_CLIENT_ID ?? 'asset-service'
+const adminRole = import.meta.env.VITE_KEYCLOAK_ADMIN_ROLE ?? 'asset-admin'
+
+function hasAdminRole() {
+  const roles = keycloak.tokenParsed?.resource_access?.[apiClientId]?.roles ?? []
+  return roles.includes(adminRole)
+}
+
 type AuthContextValue = {
   authenticated: boolean
   loading: boolean
   username?: string
+  isAdmin: boolean
   login: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -51,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authenticated,
     loading,
     username: keycloak.tokenParsed?.preferred_username,
+    isAdmin: hasAdminRole(),
     login: () => keycloak.login(),
     logout: () => keycloak.logout({ redirectUri: window.location.origin }),
   }), [authenticated, loading])
